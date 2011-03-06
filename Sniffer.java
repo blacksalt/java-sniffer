@@ -35,6 +35,13 @@ class Sniffer implements PacketReceiver {
                     System.out.println("-----------------------END--------------------------");
                 }
        	}
+       	else if(protocol ==2){
+       	    if((data.indexOf("{\"msg\":{")!=-1)&&(data.indexOf("\"msgID\"")!=-1)&&(data.indexOf("\"from_name\"")!=-1)){
+           		System.out.println("-----------------------START------------------------");
+           	    System.out.println(data);
+                System.out.println("-----------------------END--------------------------");           	  
+       	    }
+       	}
 
    	
     }
@@ -71,7 +78,12 @@ class Sniffer implements PacketReceiver {
 				//jpcap.setFilter("port 20", true);
 				//File f = new File("ym");
 				//f.mkdir();
-			}/*
+			}
+			else if(args[1].equals("fb")){
+			    protocol = 2;
+				//jpcap.setFilter("host facebook.com", true);   							    
+			}
+			/*
 			else {
 				System.err.println("Choose between meebo or ym.");
 				System.exit(1);
