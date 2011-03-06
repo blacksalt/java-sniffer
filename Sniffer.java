@@ -1,14 +1,18 @@
 import jpcap.*;
 import jpcap.packet.*;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
+    
 class Sniffer implements PacketReceiver {
     static int protocol; // chikka = 0, meebo = 1
     static JpcapCaptor jpcap;  
     public void receivePacket(Packet packet) {
-        String data = new String(packet.data);
-        String pack = new String(packet.toString());
+    String data = new String(packet.data);
+    String pack = new String(packet.toString());
 
-
+    
         if (protocol == 0){
            		if(data.indexOf("message")!=-1){
            		    System.out.println("-----------------------START------------------------");
@@ -38,13 +42,38 @@ class Sniffer implements PacketReceiver {
        	else if(protocol ==2){
        	    if((data.indexOf("{\"msg\":{")!=-1)&&(data.indexOf("\"msgID\"")!=-1)&&(data.indexOf("\"from_name\"")!=-1)){
            		System.out.println("-----------------------START------------------------");
-           	    System.out.println(data);
+           	    //System.out.println(data);
+           	    int start = data.indexOf("\"from_name\"") + 13;
+           	    int end = data.indexOf(",\"from_first_name\"") - 1;
+           	    String from = data.substring(start, end);
+           	    
+           	    start = data.indexOf("to_name") + 10;
+           	    end = data.indexOf("\",\"to_first_name");
+           	    String to = data.substring(start, end);
+           	    
+           	    
+           	    start = data.indexOf(":[{\"msg\":{\"text\":\"") +18;
+           	    end = data.indexOf("\",\"time\"");
+           	    String message = data.substring(start, end);
+           	    
+           	    System.out.println("Time: " + this.getDateTime());
+
+           	    System.out.println("From: "+from);
+           	    System.out.println("To: "+to);
+           	    System.out.println("Message: "+ message);        
                 System.out.println("-----------------------END--------------------------");           	  
        	    }
        	}
 
    	
     }
+    
+    private String getDateTime() {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        Date date = new Date();
+        return dateFormat.format(date);
+    }
+    
     public static void main(String[] args) throws Exception {
 		NetworkInterface[] devices = JpcapCaptor.getDeviceList();
 		if (args.length<2) {
