@@ -1,18 +1,32 @@
 import jpcap.*;
 import jpcap.packet.*;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
 import java.util.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
     
 class Sniffer implements PacketReceiver {
     static int protocol; // chikka = 0, meebo = 1
     static JpcapCaptor jpcap;  
-    public void receivePacket(Packet packet) {
-    String data = new String(packet.data);
-    String pack = new String(packet.toString());
-
+    FileWriter fw;
     
+
+    public void receivePacket(Packet packet) {
+        
+        String data = new String(packet.data);
+        String pack = new String(packet.toString());
+        String B;
+        
+        Pattern pattern = null;
+		Matcher matcher = null;
+		
         if (protocol == 0){
            		if(data.indexOf("message")!=-1){
            		    System.out.println("-----------------------START------------------------");
@@ -20,7 +34,15 @@ class Sniffer implements PacketReceiver {
                     System.out.println(data);
            		    System.out.println("-----------------------END------------------------");
            		}
-       	}
+           		try {
+					fw = new FileWriter("chikka/");
+                    /*fw.append(this.getDateTime());
+					fw.append(" SENDER: " + from + ": ");
+					//fw.append("RECEIVER: " + r + "\n");
+					fw.append(message + "\n");*/
+				} catch (IOException e) {}   
+       	}//end chikka
+       	
        	else if(protocol ==1){
 
            	    if((data.indexOf("sender=")!=-1) ||
@@ -38,34 +60,79 @@ class Sniffer implements PacketReceiver {
                	    
                     System.out.println("-----------------------END--------------------------");
                 }
-       	}
+           		try {
+					fw = new FileWriter("meebo/");
+                    /*fw.append(this.getDateTime());
+					fw.append(" SENDER: " + from + ": ");
+					//fw.append("RECEIVER: " + r + "\n");
+					fw.append(message + "\n");*/
+				} catch (IOException e) {}   
+       	}//end meebo
+       	
        	else if(protocol ==2){
        	    if((data.indexOf("{\"msg\":{")!=-1)&&(data.indexOf("\"msgID\"")!=-1)&&(data.indexOf("\"from_name\"")!=-1)){
-           		System.out.println("-----------------------START------------------------");
-           	    //System.out.println(data);
-           	    int start = data.indexOf("\"from_name\"") + 13;
-           	    int end = data.indexOf(",\"from_first_name\"") - 1;
-           	    String from = data.substring(start, end);
-           	    
-           	    start = data.indexOf("to_name") + 10;
-           	    end = data.indexOf("\",\"to_first_name");
-           	    String to = data.substring(start, end);
-           	    
-           	    
-           	    start = data.indexOf(":[{\"msg\":{\"text\":\"") +18;
-           	    end = data.indexOf("\",\"time\"");
-           	    String message = data.substring(start, end);
-           	    
-           	    System.out.println("Time: " + this.getDateTime());
+               	pattern = Pattern.compile("msgevents.+");
+				matcher = pattern.matcher(data);
+               		System.out.println("-----------------------START------------------------");
+               	    //System.out.println(data);
+               	    
+               	    // from name
+               	    int start = data.indexOf("\"from_name\"") + 13;
+               	    int end = data.indexOf(",\"from_first_name\"") - 1;
+               	    String from = data.substring(start, end);
+                    // from id
+               	    start = data.indexOf("\"from\":") + 7;
+               	    end = data.indexOf(",\"to\":");
+               	    String from_id = data.substring(start, end);
 
-           	    System.out.println("From: "+from);
-           	    System.out.println("To: "+to);
-           	    System.out.println("Message: "+ message);        
-                System.out.println("-----------------------END--------------------------");           	  
+               	    //to name
+               	    start = data.indexOf("to_name") + 10;
+               	    end = data.indexOf("\",\"to_first_name");
+               	    String to = data.substring(start, end);
+               	    
+               	    //to id
+               	    start = data.indexOf(",\"to\":") + 6;
+               	    end =  data.indexOf("\"from_name\"")-1;
+               	    String to_id = data.substring(start, end);
+
+                    //"session"
+                    start = data.indexOf("(;;);{\"t\":\"msg\",\"c\":\"p_") + 23;
+               	    end =  data.indexOf("\",\"s\":");
+               	    String session = data.substring(start, end);
+                    
+               	    //message
+               	    start = data.indexOf("{\"msg\":{\"text\":\"") +16;
+               	    end = data.indexOf("\",\"time\"");
+               	    String message = data.substring(start, end);
+               	    
+               	    System.out.println("Time: " + this.getDateTime());
+               	    System.out.println("From: "+ from);
+               	    System.out.println("To: "+to);
+               	    System.out.println("Message: "+ message); 
+               	    if (session.equals(from_id)){
+               	        B = to_id;
+               	    }
+               	    else{
+               	        B = from_id;
+               	    }
+               	        try {
+					        fw = new FileWriter("facebook/" + session + "-" + B + ".txt", true);
+                            fw.append(this.getDateTime());
+					        fw.append(" " + from + ": ");
+					        //fw.append("RECEIVER: " + r + "\n");
+					        fw.append(message + "\n");
+				        } 
+        			    catch (IOException e) {} 
+	                    try {
+        	                fw.close();
+	                    } catch (IOException e) {}  
+                    System.out.println("-----------------------END--------------------------"); 
+                    
+           	          	  
        	    }
-       	}
-
-   	
+       	} //end facebook
+       	
+        
     }
     
     private String getDateTime() {
@@ -110,6 +177,8 @@ class Sniffer implements PacketReceiver {
 			}
 			else if(args[1].equals("fb")){
 			    protocol = 2;
+			    File f = new File("facebook");
+				f.mkdir();
 				//jpcap.setFilter("host facebook.com", true);   							    
 			}
 			/*
