@@ -3,7 +3,7 @@ import jpcap.packet.*;
 
 class Sniffer implements PacketReceiver {
     static int protocol; // chikka = 0, meebo = 1
-
+    static JpcapCaptor jpcap;  
     public void receivePacket(Packet packet) {
         String data = new String(packet.data);
         String pack = new String(packet.toString());
@@ -18,19 +18,22 @@ class Sniffer implements PacketReceiver {
            		}
        	}
        	else if(protocol ==1){
-                if (data.indexOf("/mcmd/send")!=-1){
-               		System.out.println("-----------------------START------------------------");
-               		System.out.println("SENT!!!");
+
+           	    if((data.indexOf("sender=")!=-1) ||
+           	       ((data.indexOf("clientId=")!=-1) && (data.indexOf("GET")==-1))){
+           	        System.out.println("-----------------------START------------------------");
+               		System.out.println("SENT!!!"); 
+               	    System.out.println(pack);
                	    System.out.println(data);
-           	        System.out.println("-----------------------END--------------------------");
+           	        System.out.println("-----------------------END--------------------------");  
            	    }
-           	    else if (data.startsWith("HTTP/1.1 200")&& (data.indexOf("sender")!=-1)){
+           	    if (data.startsWith("HTTP/1.1 200")&& (data.indexOf("sender")!=-1)){
                		System.out.println("-----------------------START------------------------");
-               		System.out.println("Received!!!");
+               		System.out.println("RECEIVED!!!");
                	    System.out.println(data);
-           	        System.out.println("-----------------------END--------------------------");       	    
-           	    
-           	    }
+               	    
+                    System.out.println("-----------------------END--------------------------");
+                }
        	}
 
    	
@@ -53,7 +56,7 @@ class Sniffer implements PacketReceiver {
 			}
 		}
 		else {
-			JpcapCaptor jpcap = JpcapCaptor.openDevice(devices[Integer.parseInt(args[0])], 2000, true, 20);
+			jpcap = JpcapCaptor.openDevice(devices[Integer.parseInt(args[0])], 2000, true, 20);
 			if (args[1].equals("chikka")) {
 				jpcap.setFilter("host chikka.com", true);
 				protocol = 0;
